@@ -76,6 +76,8 @@ def wedge_polygon(inputs):
         m = re.match(r'\s*wedge\.(\w+)\s*=\s*([-\d.eE+]+)', line)
         if m:
             vals[m.group(1)] = float(m.group(2))
+    if not vals:  # e.g. an STL case: cells with vfrac = 0 are drawn black instead
+        return None
     ax, ay = vals.get('apex_x', 3.0), vals.get('apex_y', 0.0)
     L, th = vals.get('length', 1.0), np.radians(vals.get('half_angle', 30.0))
     h = L * np.tan(th)

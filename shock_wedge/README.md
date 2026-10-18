@@ -15,6 +15,8 @@ cmake --build build-wedge -j 8
 mkdir -p results/wedge && cd results/wedge
 cp ../../shock_wedge/inputs .
 OMP_NUM_THREADS=4 ../../build-wedge/bin/shock_wedge inputs     # ~20 s on 4 cores
+# STL geometry instead: cp ../../shock_wedge/inputs_stl ../../shock_wedge/wedge.stl .
+#                       ../../build-wedge/bin/shock_wedge inputs_stl
 python3 ../../shock_wedge/tools/wedge_images.py plt00246       # last plotfile
 python3 ../../shock_wedge/tools/wedge_images.py . --all        # every frame, for a movie
 # ffmpeg -framerate 10 -pattern_type glob -i 'images/plt*.png' -pix_fmt yuv420p wedge.mp4
@@ -28,19 +30,29 @@ needs only NumPy and Matplotlib.
 
 | | sod-eb-stl (3D) | shock_wedge (2D) |
 |---|---|---|
-| Geometry | `eb2.geom_type = stl`, sphere.stl | `eb2.geom_type = wedge`, implicit function `src/WedgeIF.H` |
+| Geometry | `eb2.geom_type = stl`, sphere.stl | `stl` with wedge.stl (`inputs_stl`), or implicit `wedge` (`inputs`) |
 | Initial state | Sod left/right states | Rankine-Hugoniot jump for `prob.mach` into still gas |
 | x-lo boundary | outflow (2) | inflow (1) holding the post-shock state, `src/CNS_bcfill.cpp` |
 | y boundaries | symmetry (3) | symmetry / slip wall (3) |
 | Diagnostics | composite CSV in 3D | dropped; images from plotfiles |
 
 ### Geometry
-AMReX's STL reader is 3D only, so in 2D the wedge is an implicit function: the
-minimum signed distance to the three edges of the triangle (positive inside the
-body, the EB2 convention). Inputs `wedge.apex_x/apex_y/length/half_angle`; the
-default 30 deg half-angle gives an equilateral triangle like the target image.
-`eb2.cover_multiple_cuts = 1` lets AMReX handle the cell at the sharp apex.
-Any other `eb2.geom_type` (e.g. `parser`) still goes to AMReX's built-ins.
+Two equivalent ways to describe the wedge; both give the same flow (only the two
+base-corner cells differ slightly).
+
+1. **STL, like your sphere case** (`inputs_stl`, `eb2.geom_type = stl`). In a 2D
+   build AMReX cuts the STL with the plane z = 0, so the STL is the triangle
+   extruded in z: `wedge.stl` is an 8-triangle closed prism made by
+   `tools/generate_wedge_stl.py` (options `--apex --length --half-angle`).
+   Copy `wedge.stl` into the run folder, as with `sphere.stl`.
+2. **Implicit function** (`inputs`, `eb2.geom_type = wedge`): the minimum signed
+   distance to the three edges (positive inside the body, the EB2 convention),
+   in `src/WedgeIF.H`, set by `wedge.apex_x/apex_y/length/half_angle`.
+
+The default is an equilateral triangle (30 deg half-angle) with the apex
+upstream at (3, 0), like the target image. `eb2.cover_multiple_cuts = 1` lets
+AMReX handle the cells at the sharp corners. Any other `eb2.geom_type` still goes
+to AMReX's built-ins.
 
 ### Initial condition (Rankine-Hugoniot)
 Still gas: rho_1 = 1, p_1 = 1/gamma, so c_1 = 1 and the shock speed W = M.
