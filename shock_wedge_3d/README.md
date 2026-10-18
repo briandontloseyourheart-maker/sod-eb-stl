@@ -7,7 +7,7 @@ faces. Half the span is computed, with z = 0 as the mid-span symmetry plane.
 
 ![mid-span and side slices](example_t1.30.png)
 
-Example above: t = 1.3 with `amr.max_level=1` (finest dx = L/32), mid-span slice on top and side slice through the apex below.
+Example above: t = 1.3 with the default inputs (finest dx = L/64), mid-span slice on top and side slice through the apex below.
 
 ## Build, run, plot
 
@@ -23,8 +23,7 @@ python3 ../../shock_wedge_3d/tools/slice_images.py plt00XXX --slice z=0.01 --sli
 ```
 
 Cost on 4 cores: `amr.max_level=1` (finest dx = L/32) takes about 2 min, a good
-first check. The default `max_level=2` (L/64) is roughly 30 s per coarse step on
-4 cores, on the order of an hour to t = 1.3; use more cores or MPI for it.
+first check. The default `max_level=2` (L/64) took 11 min to t = 1.3 (120 coarse steps).
 Plotfiles open in ParaView with the AMReX/BoxLib Grid Reader for 3D views
 (contour of density, or a slice coloured by |grad rho|).
 
