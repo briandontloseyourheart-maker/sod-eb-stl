@@ -1,0 +1,5 @@
+{
+  "based_on": "../sod_eb2/src (C++ CNS)",
+  "amrex_commit": "2399452da8054029a92c5309a4bccb3102c109fd",
+  "source_changes_relative_to_sod_eb2": []
+}

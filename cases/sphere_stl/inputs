@@ -1,0 +1,64 @@
+# Dimensionless Sod initial states, ideal gas gamma=1.4, inviscid Euler.
+max_step = 2000
+stop_time = 0.2
+
+
+
+#两种边界 计算域外边界 和内部球体边界
+#这里是计算域外边界
+geometry.coord_sys = 0
+geometry.prob_lo = 0 0 0
+geometry.prob_hi = 1 1 1
+geometry.is_periodic = 0 0 0
+
+
+
+
+
+
+amr.n_cell = 64 64 64
+amr.max_level = 1
+amr.ref_ratio = 2
+amr.regrid_int = 4
+amr.blocking_factor = 8
+amr.max_grid_size = 32
+amr.n_error_buf = 2
+amr.grid_eff = 0.7
+
+
+# x: outflow; y,z: symmetry (inviscid reflecting walls).
+cns.lo_bc = 2 3 3
+cns.hi_bc = 2 3 3
+
+
+
+
+
+cns.cfl = 0.3
+cns.do_visc = 0
+cns.do_reflux = 1
+cns.refine_cutcells = 1
+cns.refine_max_dengrad_lev = 1
+cns.refine_dengrad = 0.02
+cns.v = 0
+amr.v = 1
+amr.checkpoint_files_output = 0
+amr.plot_files_output = 1
+amr.plot_file = plt
+amr.plot_int = 20
+amr.derive_plot_vars = pressure x_velocity y_velocity z_velocity
+eb2.geom_type = stl
+# Resolved against the run directory; run.py copies the exact mesh here.
+eb2.stl_file = sphere.stl
+eb2.stl_scale = 1
+eb2.stl_center = 0 0 0
+eb2.stl_reverse_normal = 0
+eb2.stl_use_bvh = 1
+eb2.cover_multiple_cuts = 0
+prob.p_l = 1.0
+prob.p_r = 0.1
+prob.rho_l = 1.0
+prob.rho_r = 0.125
+prob.u_l = 0
+prob.u_r = 0
+study.slice_z = 0.5

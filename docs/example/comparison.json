@@ -1,0 +1,18 @@
+{
+  "time": 0.2,
+  "comparison": "cell-constant composite z layer on shared fluid pixels",
+  "grid": [
+    128,
+    128
+  ],
+  "shared_fluid_pixels": 15648,
+  "solid_classification_different_pixels": 0,
+  "density": {
+    "mean_absolute_difference": 1.9704389134522436e-05,
+    "max_absolute_difference": 0.0037838071095530057
+  },
+  "pressure": {
+    "mean_absolute_difference": 2.3594096601855402e-05,
+    "max_absolute_difference": 0.006105650707545485
+  }
+}

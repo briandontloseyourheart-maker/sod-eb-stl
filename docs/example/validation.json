@@ -1,0 +1,11 @@
+{
+  "passed": true,
+  "steps": 102,
+  "final_time": 0.2,
+  "max_sphere_volume_relative_error": 0.002939517183313901,
+  "max_mass_relative_change": 9.14601727686204e-12,
+  "max_energy_relative_change": 8.264944284519515e-12,
+  "final_cut_cells": 4788,
+  "min_density": 0.12257698629179895,
+  "min_pressure": 0.09643192505338931
+}

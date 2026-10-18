@@ -1,0 +1,19 @@
+{
+  "format": "binary STL",
+  "center": [
+    0.7,
+    0.5,
+    0.5
+  ],
+  "radius": 0.125,
+  "longitude_segments": 128,
+  "latitude_segments": 64,
+  "vertices": 8066,
+  "triangles": 16128,
+  "closed_two_manifold": true,
+  "consistent_outward_winding": true,
+  "volume": 0.008173019956975265,
+  "analytic_volume": 0.008181230868723419,
+  "relative_volume_error": 0.0010036279234637568,
+  "sha256": "d1c477282d347d6e136fc1877b341c882f27d1f8ec2b82b894c786ee5d1c9c50"
+}
