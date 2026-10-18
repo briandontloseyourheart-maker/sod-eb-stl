@@ -5,6 +5,14 @@ along your `brake.stl`: a body of radius about 1.0-1.12 from the nose (x = 0) to
 tail (x = 6.5), with four brake plates at x = 4.77-4.98 that reach r = 2.28, one on
 each of the +y, -y, +z, -z axes. The STL is used exactly as uploaded.
 
+![symmetry-plane and plate slices](example.png)
+
+Example above: t = 5.25 with the default inputs (`--drho 0.05`). Top: the
+symmetry plane z = 0 through the +y plate, with the wave reflected from the
+nose spreading upstream and the shock diffracting round the plate with a
+vortex at its tip. Bottom: the cross-section x = 4.87 through the plates.
+The full run to t = 6 took 41 min on 4 cores (489 coarse steps).
+
 
 ## Build, run, plot
 
@@ -20,6 +28,8 @@ python3 ../../shock_wedge_3d/tools/slice_images.py . --all          # every fram
 ```
 
 Quick check first: add `amr.max_level=1 stop_time=0.3` to the run line.
+The density range here is larger than in the wedge case, so use `--drho 0.05`
+or more for readable fringes.
 
 ## STL check
 
