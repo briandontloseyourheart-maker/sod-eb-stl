@@ -4,7 +4,7 @@ Mach 3 flow past a circular cylinder in a channel of height 4 D with slip walls.
 The bow shock reflects off the channel walls, the reflected shocks cross the wake,
 and the wake behind the cylinder sheds vortices. The cylinder is an STL.
 
-![Interferogram (top) and Schlieren (bottom) at t = 10, finest dx = D/128](example_t10.png)
+![Interferogram (top) and Schlieren (bottom) at t = 19.9, finest dx = D/128](example_t20.png)
 
 ## Build, run, plot
 
