@@ -132,6 +132,8 @@ CNS::compute_dSdt_box_eb (const Box& bx,
 
     auto l_plm_iorder = plm_iorder;
     auto l_plm_theta = plm_theta;
+    // eb_first_order = 1: zero slopes in cut cells (more robust next to tiny cut cells)
+    auto l_eb_fo = eb_first_order;
 
     // x-direction
     int cdir = 0;
@@ -139,7 +141,8 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     amrex::ParallelFor(xslpbx,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        cns_slope_eb_x(i, j, k, slope, q, flag, l_plm_iorder, l_plm_theta);
+        int io = (l_eb_fo && !flag(i,j,k).isRegular()) ? 1 : l_plm_iorder;
+        cns_slope_eb_x(i, j, k, slope, q, flag, io, l_plm_theta);
     });
 
     const Box& xflxbx = amrex::surroundingNodes(bxg3,cdir);
@@ -168,7 +171,8 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     amrex::ParallelFor(yslpbx,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        cns_slope_eb_y(i, j, k, slope, q, flag, l_plm_iorder, l_plm_theta);
+        int io = (l_eb_fo && !flag(i,j,k).isRegular()) ? 1 : l_plm_iorder;
+        cns_slope_eb_y(i, j, k, slope, q, flag, io, l_plm_theta);
     });
 
     const Box& yflxbx = amrex::surroundingNodes(bxg3,cdir);
@@ -196,7 +200,8 @@ CNS::compute_dSdt_box_eb (const Box& bx,
     amrex::ParallelFor(zslpbx,
     [=] AMREX_GPU_DEVICE (int i, int j, int k) noexcept
     {
-        cns_slope_eb_z(i, j, k, slope, q, flag, l_plm_iorder, l_plm_theta);
+        int io = (l_eb_fo && !flag(i,j,k).isRegular()) ? 1 : l_plm_iorder;
+        cns_slope_eb_z(i, j, k, slope, q, flag, io, l_plm_theta);
     });
 
     const Box& zflxbx = amrex::surroundingNodes(bxg3,cdir);

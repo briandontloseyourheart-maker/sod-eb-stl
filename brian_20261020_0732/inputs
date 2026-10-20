@@ -32,6 +32,13 @@ cns.cfl       = 0.3
 # Minmod slopes and volume-fraction weights keep it stable.
 cns.plm_theta       = 1     # 1: minmod, 2: MC (default)
 cns.eb_weights_type = 3     # 3: volume-fraction weights for flux redistribution
+# Without these the run dies near t = 1.3-2.7: the expansion over the cylinder's top and
+# bottom shoulders drives tiny cut cells to negative pressure and unphysical speeds.
+# (eb2.small_volfrac below is kept at 0.01; 0.05 and 0.1 made it worse.)
+cns.eb_first_order  = 1     # zero (first-order) slopes in cut cells only
+cns.floor_rho       = 1e-3  # density / pressure floors (off when <= 0)
+cns.floor_p         = 1e-3
+cns.floor_vmax      = 6.0   # speed cap; Mach 3 flow cannot exceed u_max = 3.74
 cns.do_visc   = 0
 cns.do_reflux = 1
 cns.refine_cutcells        = 1
@@ -60,6 +67,7 @@ eb2.stl_center = 0 0 0
 eb2.stl_reverse_normal = 0
 eb2.stl_use_bvh = 1
 eb2.cover_multiple_cuts = 1
+eb2.small_volfrac = 0.01   # merge only the tiniest cut cells (< 1 % of a cell)
 
 # Start-up: freestream for x < 1, gas at rest elsewhere. The Mach 3 stream then
 # enters behind a start-up shock that sweeps past the cylinder and out of the domain.

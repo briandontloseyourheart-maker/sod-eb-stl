@@ -132,7 +132,12 @@ def main():
     for plt_dir in plts:
         fields, extent, time = read_plotfile(plt_dir)
         schl, fr = make_images(fields, extent, args.k, args.drho, args.rho_ref)
-        fig, axes = plt.subplots(1, 2, figsize=(16, 6.6), facecolor='black', layout='constrained')
+        h_over_w = (extent[3] - extent[2]) / (extent[1] - extent[0])
+        if h_over_w < 0.5:   # long, flat domain: put the two images one above the other
+            fig, axes = plt.subplots(2, 1, figsize=(16, 2 * 16 * h_over_w + 1.0), facecolor='black',
+                                     layout='constrained')
+        else:
+            fig, axes = plt.subplots(1, 2, figsize=(16, 6.6), facecolor='black', layout='constrained')
         for ax, img, cmap, title in [(axes[0], fr, fringe, 'Numerical interferogram'),
                                      (axes[1], schl, blues, 'Numerical Schlieren')]:
             ax.imshow(img, origin='lower', extent=extent, cmap=cmap, vmin=0, vmax=1,

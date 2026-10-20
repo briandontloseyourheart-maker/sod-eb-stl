@@ -4,6 +4,8 @@ Mach 3 flow past a circular cylinder in a channel of height 4 D with slip walls.
 The bow shock reflects off the channel walls, the reflected shocks cross the wake,
 and the wake behind the cylinder sheds vortices. The cylinder is an STL.
 
+![Interferogram (top) and Schlieren (bottom) at t = 8.6, finest dx = D/128](example_t8.6.png)
+
 ## Build, run, plot
 
 ```bash
@@ -13,8 +15,8 @@ cmake --build build-cyl -j 8
 mkdir -p results/cyl && cd results/cyl
 cp ../../brian_20261020_0732/inputs ../../brian_20261020_0732/cylinder.stl .
 OMP_NUM_THREADS=8 ../../build-cyl/bin/cylinder_mach3 inputs
-python3 ../../shock_wedge/tools/wedge_images.py plt0XXXX --k 25 --drho 0.1   # Schlieren + interferogram
-python3 ../../shock_wedge/tools/wedge_images.py . --all --k 25 --drho 0.1     # every frame, for a movie
+python3 ../../shock_wedge/tools/wedge_images.py plt0XXXX --k 25 --drho 0.25   # Schlieren + interferogram
+python3 ../../shock_wedge/tools/wedge_images.py . --all --k 25 --drho 0.25     # every frame, for a movie
 ```
 
 A checkpoint is written every 5 time units; continue a run with `amr.restart=chkXXXXX`.
@@ -35,7 +37,7 @@ In ParaView, `../shock_wedge/tools/paraview_schlieren.py` gives the same Schlier
 
 Units: lengths in D, time in D/c. The freestream crosses the domain in 5.3 time units.
 
-### Three things needed to make it run
+### What is needed to make it run
 
 1. **Start-up.** Filling the whole domain with Mach 3 flow at t = 0 makes the gas
    behind the cylinder pull away from its rear wall into near-vacuum, and the run
@@ -54,6 +56,20 @@ Units: lengths in D, time in D/c. The freestream crosses the domain in 5.3 time 
    `cns.plm_theta = 1` (minmod) and `cns.eb_weights_type = 3` (volume-fraction
    weights); `../src/solver/CNS.cpp` now reads `cns.plm_theta` and `cns.plm_iorder`
    from the inputs (defaults unchanged, so the other cases are not affected).
+4. **Cut cells on the shoulders.** Later (t = 1.3 to 11, depending on the grid) the
+   expansion over the cylinder's top and bottom drove a few tiny cut cells to
+   negative pressure and unphysical speeds (10 to 300, while Mach 3 flow cannot go
+   faster than u_max = 3.74), and the time step collapsed to 0. Four new, opt-in
+   solver options fix it; all are off by default, so the other cases are unchanged:
+   - `cns.eb_first_order = 1`: zero slopes (first order) in cut cells only;
+   - `cns.floor_rho`, `cns.floor_p` = 1e-3: density and pressure floors;
+   - `cns.floor_vmax = 6`: speed cap; the kinetic energy removed stays in the total
+     energy, so energy is conserved;
+   - `eb2.small_volfrac = 0.01` merges the very smallest cut
+     cells (volume fraction < 1 %) at D/128. Larger values (0.05, 0.1) made it worse.
+
+   Also fixed: `cns.plm_iorder = 1` crashed 2D runs (it wrote a 5th slope component
+   into a 4-component array).
 
 ## Files
 

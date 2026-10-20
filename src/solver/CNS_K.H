@@ -54,15 +54,43 @@ cns_compute_temperature (int i, int j, int k, amrex::Array4<amrex::Real> const& 
 {
     using amrex::Real;
 
+    if (parm.floor_rho > Real(0.0) && !(u(i,j,k,URHO) >= parm.floor_rho)) {
+        // keep the velocity, raise the density
+        Real fac = parm.floor_rho / u(i,j,k,URHO);
+        if (!(fac > Real(0.0)) || fac > Real(1.e10)) { fac = Real(0.0); }
+        u(i,j,k,UMX) *= fac;
+        u(i,j,k,UMY) *= fac;
+#if (AMREX_SPACEDIM == 3)
+        u(i,j,k,UMZ) *= fac;
+#endif
+        u(i,j,k,URHO) = parm.floor_rho;
+    }
+    if (parm.floor_vmax > Real(0.0)) {
+        // cap the speed; the kinetic energy removed stays in rho_E (becomes heat)
+        Real m2 = AMREX_D_TERM(u(i,j,k,UMX)*u(i,j,k,UMX), +u(i,j,k,UMY)*u(i,j,k,UMY), +u(i,j,k,UMZ)*u(i,j,k,UMZ));
+        Real mmax = parm.floor_vmax * u(i,j,k,URHO);
+        if (m2 > mmax*mmax) {
+            Real fac = mmax / std::sqrt(m2);
+            AMREX_D_TERM(u(i,j,k,UMX) *= fac;, u(i,j,k,UMY) *= fac;, u(i,j,k,UMZ) *= fac;);
+        }
+    }
     Real rhoinv = Real(1.0)/u(i,j,k,URHO);
     Real mx = u(i,j,k,UMX);
     Real my = u(i,j,k,UMY);
 #if (AMREX_SPACEDIM == 2)
-    u(i,j,k,UEINT) = u(i,j,k,UEDEN) - Real(0.5) * rhoinv * (mx*mx+my*my);
+    Real ke = Real(0.5) * rhoinv * (mx*mx+my*my);
 #else
     Real mz = u(i,j,k,UMZ);
-    u(i,j,k,UEINT) = u(i,j,k,UEDEN) - Real(0.5) * rhoinv * (mx*mx+my*my+mz*mz);
+    Real ke = Real(0.5) * rhoinv * (mx*mx+my*my+mz*mz);
 #endif
+    u(i,j,k,UEINT) = u(i,j,k,UEDEN) - ke;
+    if (parm.floor_p > Real(0.0)) {
+        const Real eint_min = parm.floor_p/(parm.eos_gamma-Real(1.0));
+        if (!(u(i,j,k,UEINT) >= eint_min)) {
+            u(i,j,k,UEINT) = eint_min;
+            u(i,j,k,UEDEN) = eint_min + ke;
+        }
+    }
     u(i,j,k,UTEMP) = rhoinv * u(i,j,k,UEINT) * (Real(1.0)/parm.cv);
 }
 
