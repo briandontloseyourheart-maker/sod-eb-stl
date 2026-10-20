@@ -84,7 +84,7 @@ def wedge_polygon(inputs):
     return np.array([[ax, ay], [ax + L, ay - h], [ax + L, ay + h]])
 
 
-def make_images(fields, extent, k, drho, rho_ref):
+def make_images(fields, extent, k, drho, rho_ref, gmax=None):
     rho = fields['density']
     solid = fields['vfrac'] <= 0.0
     dx = (extent[1] - extent[0]) / rho.shape[1]
@@ -95,7 +95,9 @@ def make_images(fields, extent, k, drho, rho_ref):
     for s in [(1, 0), (-1, 0), (0, 1), (0, -1)]:
         near |= np.roll(solid, s, axis=(0, 1))
     grad[near] = 0.0
-    schlieren = np.exp(-k * grad / max(grad.max(), 1e-30))
+    # gmax: fixed normalisation (same for every frame, so an animation does not flicker)
+    norm = gmax if gmax else max(grad.max(), 1e-30)
+    schlieren = np.exp(-k * grad / norm)
     fringes = np.cos(np.pi * (rho - rho_ref) / drho) ** 2
     schlieren[solid] = np.nan
     fringes[solid] = np.nan
@@ -111,6 +113,8 @@ def main():
     p.add_argument('--k', type=float, default=15.0, help='Schlieren sensitivity')
     p.add_argument('--drho', type=float, default=0.02, help='density change per interference fringe')
     p.add_argument('--rho-ref', type=float, default=1.0, help='density of the reference beam')
+    p.add_argument('--gmax', type=float, default=None,
+                   help='fixed |grad rho| for the Schlieren scale (default: each frame\'s own maximum)')
     p.add_argument('--xlim', type=float, nargs=2, default=None)
     p.add_argument('--ylim', type=float, nargs=2, default=None)
     args = p.parse_args()
@@ -131,7 +135,7 @@ def main():
 
     for plt_dir in plts:
         fields, extent, time = read_plotfile(plt_dir)
-        schl, fr = make_images(fields, extent, args.k, args.drho, args.rho_ref)
+        schl, fr = make_images(fields, extent, args.k, args.drho, args.rho_ref, args.gmax)
         h_over_w = (extent[3] - extent[2]) / (extent[1] - extent[0])
         if h_over_w < 0.5:   # long, flat domain: put the two images one above the other
             fig, axes = plt.subplots(2, 1, figsize=(16, 2 * 16 * h_over_w + 1.0), facecolor='black',

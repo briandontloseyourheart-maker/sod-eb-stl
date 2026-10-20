@@ -4,7 +4,7 @@ Mach 3 flow past a circular cylinder in a channel of height 4 D with slip walls.
 The bow shock reflects off the channel walls, the reflected shocks cross the wake,
 and the wake behind the cylinder sheds vortices. The cylinder is an STL.
 
-![Interferogram (top) and Schlieren (bottom) at t = 8.6, finest dx = D/128](example_t8.6.png)
+![Interferogram (top) and Schlieren (bottom) at t = 10, finest dx = D/128](example_t10.png)
 
 ## Build, run, plot
 
@@ -20,6 +20,13 @@ python3 ../../shock_wedge/tools/wedge_images.py . --all --k 25 --drho 0.25     #
 ```
 
 A checkpoint is written every 5 time units; continue a run with `amr.restart=chkXXXXX`.
+For an animation, use a fixed Schlieren scale so the frames don't flicker, then join them:
+
+```bash
+python3 ../../shock_wedge/tools/wedge_images.py . --all --k 25 --drho 0.25 --gmax 100 --out frames
+ffmpeg -framerate 20 -pattern_type glob -i 'frames/plt*.png' -vf "pad=ceil(iw/2)*2:ceil(ih/2)*2" -c:v libx264 -pix_fmt yuv420p -crf 18 cylinder.mp4
+```
+
 In ParaView, `../shock_wedge/tools/paraview_schlieren.py` gives the same Schlieren.
 
 ## Setup
