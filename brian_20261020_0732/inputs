@@ -26,6 +26,12 @@ cns.lo_bc = 1 3
 cns.hi_bc = 2 3
 
 cns.cfl       = 0.3
+# Robustness at Mach 3: with the default MC slope limiter (plm_theta = 2) and equal
+# redistribution weights, the start-up shock hitting the small cut cells on the
+# cylinder drives the pressure negative there and the time step collapses to 0.
+# Minmod slopes and volume-fraction weights keep it stable.
+cns.plm_theta       = 1     # 1: minmod, 2: MC (default)
+cns.eb_weights_type = 3     # 3: volume-fraction weights for flux redistribution
 cns.do_visc   = 0
 cns.do_reflux = 1
 cns.refine_cutcells        = 1

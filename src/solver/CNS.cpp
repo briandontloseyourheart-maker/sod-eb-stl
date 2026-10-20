@@ -377,6 +377,8 @@ CNS::read_params ()
     }
 
     pp.query("cfl", cfl);
+    pp.query("plm_iorder", plm_iorder);   // 1: first order, 2: second order slopes
+    pp.query("plm_theta", plm_theta);     // 1: minmod, 2: monotonized central
 
     Vector<int> lo_bc(AMREX_SPACEDIM), hi_bc(AMREX_SPACEDIM);
     pp.getarr("lo_bc", lo_bc, 0, AMREX_SPACEDIM);

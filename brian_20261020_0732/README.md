@@ -35,7 +35,7 @@ In ParaView, `../shock_wedge/tools/paraview_schlieren.py` gives the same Schlier
 
 Units: lengths in D, time in D/c. The freestream crosses the domain in 5.3 time units.
 
-### Two things needed to make it run
+### Three things needed to make it run
 
 1. **Start-up.** Filling the whole domain with Mach 3 flow at t = 0 makes the gas
    behind the cylinder pull away from its rear wall into near-vacuum, and the run
@@ -47,6 +47,13 @@ Units: lengths in D, time in D/c. The freestream crosses the domain in 5.3 time 
    grid lines at its front, back, top and bottom, which makes degenerate cut
    cells. The small offset avoids that and also breaks the up-down symmetry, so the
    wake starts shedding vortices on its own.
+3. **Limiter and redistribution weights.** Even then, with the solver's default
+   MC slope limiter and equal flux-redistribution weights, the start-up shock
+   hitting the small cut cells on the cylinder face drove the pressure negative
+   there (same with an exact analytic circle, so it is not the STL). The inputs use
+   `cns.plm_theta = 1` (minmod) and `cns.eb_weights_type = 3` (volume-fraction
+   weights); `../src/solver/CNS.cpp` now reads `cns.plm_theta` and `cns.plm_iorder`
+   from the inputs (defaults unchanged, so the other cases are not affected).
 
 ## Files
 
