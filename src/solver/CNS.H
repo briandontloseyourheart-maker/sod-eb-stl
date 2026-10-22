@@ -133,6 +133,7 @@ protected:
                        amrex::EBFluxRegister* fr_as_crse, amrex::EBFluxRegister* fr_as_fine);
 
     void printTotal () const;
+    void writeForces (amrex::Real time);   // pressure force on the EB body, all levels
 
     const amrex::MultiFab* volfrac;
     const amrex::MultiCutFab* bndrycent;
@@ -162,6 +163,9 @@ protected:
     static bool use_const_visc;
 
     static int plm_iorder;
+    static int eb_first_order;
+    static int force_int;
+    static amrex::Real force_pref;
     static amrex::Real plm_theta;
 
     static int eb_weights_type;
