@@ -29,6 +29,7 @@ RealBox*  CNS::dp_refine_boxes;
 bool      CNS::do_visc        = true;  // diffusion is on by default
 bool      CNS::use_const_visc = false; // diffusion does not use constant viscosity by default
 
+int       CNS::eb_first_order = 0;     // 1: first-order (zero) slopes in cut cells
 int       CNS::plm_iorder     = 2;     // [1,2] 1: slopes are zero'd,  2: second order slopes
 Real      CNS::plm_theta      = 2.0;   // [1,2] 1: minmod; 2: van Leer's MC
 Real      CNS::gravity        = 0.0;
@@ -377,6 +378,9 @@ CNS::read_params ()
     }
 
     pp.query("cfl", cfl);
+    pp.query("plm_iorder", plm_iorder);   // 1: first order, 2: second order slopes
+    pp.query("plm_theta", plm_theta);     // 1: minmod, 2: monotonized central
+    pp.query("eb_first_order", eb_first_order);
 
     Vector<int> lo_bc(AMREX_SPACEDIM), hi_bc(AMREX_SPACEDIM);
     pp.getarr("lo_bc", lo_bc, 0, AMREX_SPACEDIM);
@@ -435,6 +439,9 @@ CNS::read_params ()
     pp.query("Pr"       , h_parm->Pr);
     pp.query("C_S"      , h_parm->C_S);
     pp.query("T_S"      , h_parm->T_S);
+    pp.query("floor_rho", h_parm->floor_rho);
+    pp.query("floor_p"  , h_parm->floor_p);
+    pp.query("floor_vmax", h_parm->floor_vmax);
 
     h_parm->Initialize();
     amrex::Gpu::copyAsync(amrex::Gpu::hostToDevice, h_parm, h_parm+1, d_parm);

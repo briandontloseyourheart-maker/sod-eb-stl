@@ -162,6 +162,7 @@ protected:
     static bool use_const_visc;
 
     static int plm_iorder;
+    static int eb_first_order;
     static amrex::Real plm_theta;
 
     static int eb_weights_type;

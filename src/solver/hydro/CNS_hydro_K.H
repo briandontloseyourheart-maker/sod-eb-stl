@@ -88,7 +88,9 @@ cns_slope_x (int i, int j, int k,
         dq(i,j,k,1) = Real(0.);
         dq(i,j,k,2) = Real(0.);
         dq(i,j,k,3) = Real(0.);
-        dq(i,j,k,4) = Real(0.);
+#if (AMREX_SPACEDIM == 3)
+        dq(i,j,k,4) = Real(0.);   // the slope array has only 4 components in 2D
+#endif
     } else {
 
         Real dlft = Real(0.5)*(q(i,j,k,QPRES)-q(i-1,j,k,QPRES))/q(i,j,k,QCS) - Real(0.5)*q(i,j,k,QRHO)*(q(i,j,k,QU) - q(i-1,j,k,QU));
@@ -137,7 +139,9 @@ cns_slope_y (int i, int j, int k,
         dq(i,j,k,1) = Real(0.);
         dq(i,j,k,2) = Real(0.);
         dq(i,j,k,3) = Real(0.);
-        dq(i,j,k,4) = Real(0.);
+#if (AMREX_SPACEDIM == 3)
+        dq(i,j,k,4) = Real(0.);   // the slope array has only 4 components in 2D
+#endif
     } else {
 
         Real dlft = Real(0.5)*(q(i,j,k,QPRES)-q(i,j-1,k,QPRES))/q(i,j,k,QCS) - Real(0.5)*q(i,j,k,QRHO)*(q(i,j,k,QV) - q(i,j-1,k,QV));
@@ -187,7 +191,9 @@ cns_slope_z (int i, int j, int k,
         dq(i,j,k,1) = Real(0.);
         dq(i,j,k,2) = Real(0.);
         dq(i,j,k,3) = Real(0.);
-        dq(i,j,k,4) = Real(0.);
+#if (AMREX_SPACEDIM == 3)
+        dq(i,j,k,4) = Real(0.);   // the slope array has only 4 components in 2D
+#endif
     } else {
 
         Real dlft = Real(0.5)*(q(i,j,k,QPRES)-q(i,j,k-1,QPRES))/q(i,j,k,QCS) - Real(0.5)*q(i,j,k,QRHO)*(q(i,j,k,QW) - q(i,j,k-1,QW));
