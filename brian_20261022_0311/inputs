@@ -1,0 +1,92 @@
+# Steady Mach 2 flight of the body with four brake plates (3D, inviscid).
+# The plate angle is chosen by the STL: brake_000.stl (folded), brake_030.stl,
+# brake_060.stl, brake_090.stl (your original geometry, struts removed).
+# Run one angle with e.g.   ./brake_mach2 inputs eb2.stl_file=brake_060.stl
+#
+# Body axis = x, rounded nose at x = 0 flies first, flat base at x = 6.5. Lengths in STL
+# units. Gas units: freestream rho = 1, p = 1/gamma, so the sound speed is 1 and the
+# flight speed is u = 2 (Mach 2). Time unit = body radius / sound speed.
+#
+# The body is symmetric about the planes y = 0 and z = 0, so only the quarter y >= 0, z >= 0
+# is computed. forces.dat therefore holds a quarter of the drag (see README).
+max_step  = 1000000
+stop_time = 8.0
+
+geometry.coord_sys   = 0
+geometry.prob_lo     = -2 0 0
+geometry.prob_hi     = 10 5 5
+geometry.is_periodic = 0 0 0
+
+# Base grid dx = 0.125; with max_level = 2 and ratio 2 the finest dx = 0.03125.
+amr.n_cell          = 96 40 40
+amr.max_level       = 2
+amr.ref_ratio       = 2 2 2 2
+amr.regrid_int      = 2
+amr.blocking_factor = 8
+amr.max_grid_size   = 32
+amr.n_error_buf     = 2
+amr.grid_eff        = 0.7
+
+# 0 interior, 1 inflow, 2 outflow, 3 symmetry, 4 slip wall, 5 no-slip wall
+# x-lo: supersonic inflow of the freestream; x-hi: outflow
+# y-lo, z-lo: symmetry planes through the body axis; y-hi, z-hi: outflow
+cns.lo_bc = 1 3 3
+cns.hi_bc = 2 2 2
+
+cns.cfl       = 0.3
+cns.do_visc   = 0
+cns.do_reflux = 1
+cns.refine_cutcells        = 1
+cns.refine_max_dengrad_lev = 10
+cns.refine_dengrad         = 0.1
+# The plates are only 0.088 thick: a coarse level cannot see them at all (the STL is
+# sampled at grid nodes), so always refine the region the plates can occupy at any angle.
+cns.refine_box_lo_0 = 4.55 0.0 0.0
+cns.refine_box_hi_0 = 6.20 2.45 2.45
+cns.v = 0
+amr.v = 1
+
+# Robustness settings from the Mach 3 cylinder case (../brian_20261020_0732/README.md):
+cns.plm_theta       = 1     # minmod slopes
+cns.eb_weights_type = 3     # volume-fraction redistribution weights
+cns.eb_first_order  = 1     # first-order slopes in cut cells
+# Floors are higher than for the cylinder: a few nearly-covered cut cells on the nose
+# otherwise drain to near vacuum and cut the time step by 10x. Physical densities in
+# this flow stay above about 0.2 (base wake), so the floors only touch those cells.
+cns.floor_rho       = 0.05
+cns.floor_p         = 0.01
+cns.floor_vmax      = 4.0   # Mach 2 flow cannot exceed u_max = 3.0
+
+# Pressure force on the body (relative to freestream pressure), every 5 coarse steps
+cns.force_int  = 5
+cns.force_pref = 0.7142857142857143
+
+amr.checkpoint_files_output = 1
+amr.check_file        = chk
+amr.check_per         = 4.0
+amr.plot_files_output = 1
+amr.plot_file         = plt
+amr.plot_per          = 1.0
+amr.derive_plot_vars  = pressure x_velocity y_velocity z_velocity
+
+eb2.geom_type = stl
+eb2.stl_file = brake_090.stl
+eb2.stl_scale = 1
+eb2.stl_center = 0 0 0
+eb2.stl_reverse_normal = 0
+eb2.stl_use_bvh = 1
+eb2.cover_multiple_cuts = 1
+# merge cut cells under 0.01 % of a cell (larger values fail to build for some angles)
+eb2.small_volfrac = 1e-4
+
+# The thin plates cannot be coarsened from the finest EB, so build each level from the STL.
+eb2.build_coarse_level_by_coarsening = 0
+
+# Start: Mach 2 freestream everywhere (x_start beyond the domain), as if the body appeared
+# in the moving air. Do not start with still air downstream (x_start inside the domain):
+# moving air colliding with still air leaves a slow shock that takes ~50 time units to
+# leave the domain. The start-up transient is gone after about one flow-through (t ~ 6).
+prob.x_start = 100.0
+prob.mach = 2.0
+prob.rho  = 1.0
+prob.p    = 0.7142857142857143

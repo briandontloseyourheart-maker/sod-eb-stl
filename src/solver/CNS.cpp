@@ -11,6 +11,8 @@
 #include <AMReX_EBFArrayBox.H>
 
 #include <climits>
+#include <fstream>
+#include <AMReX_MultiFabUtil.H>
 
 using namespace amrex;
 
@@ -30,6 +32,8 @@ bool      CNS::do_visc        = true;  // diffusion is on by default
 bool      CNS::use_const_visc = false; // diffusion does not use constant viscosity by default
 
 int       CNS::eb_first_order = 0;     // 1: first-order (zero) slopes in cut cells
+int       CNS::force_int      = 0;     // write EB pressure force every force_int coarse steps (0: off)
+Real      CNS::force_pref     = 0.0;   // reference pressure subtracted before integrating
 int       CNS::plm_iorder     = 2;     // [1,2] 1: slopes are zero'd,  2: second order slopes
 Real      CNS::plm_theta      = 2.0;   // [1,2] 1: minmod; 2: van Leer's MC
 Real      CNS::gravity        = 0.0;
@@ -256,11 +260,73 @@ CNS::post_timestep (int /*iteration*/)
 }
 
 void
-CNS::postCoarseTimeStep (Real /*time*/)
+CNS::postCoarseTimeStep (Real time)
 {
+    if (force_int > 0 && parent->levelSteps(0) % force_int == 0) {
+        writeForces(time);
+    }
     // This only computes sum on level 0
     if (verbose >= 2) {
         printTotal();
+    }
+}
+
+// Pressure force on the embedded body, F = sum over cut cells of (p - force_pref) * A n,
+// where A n (n out of the gas, into the body) follows from the cell's face apertures:
+// A n_x = (apx(i) - apx(i+1)) dy dz, etc. Each level counts only cells not covered by
+// a finer level. Appends "time Fx Fy Fz" to forces.dat (the computed part of the body).
+void
+CNS::writeForces (Real time)
+{
+    const int finest = parent->finestLevel();
+    std::array<Real,3> F{0.0, 0.0, 0.0};
+    const Real gm1 = h_parm->eos_gamma - Real(1.0);
+    const Real pref = force_pref;
+    for (int lev = 0; lev <= finest; ++lev) {
+        CNS& L = getLevel(lev);
+        const MultiFab& S = L.get_new_data(State_Type);
+        auto const& fact = dynamic_cast<EBFArrayBoxFactory const&>(S.Factory());
+        auto const& flags = fact.getMultiEBCellFlagFab();
+        auto const& ap = fact.getAreaFrac();
+        const auto dxl = L.geom.CellSizeArray();
+        iMultiFab fmask;
+        if (lev < finest) {
+            fmask = makeFineMask(S.boxArray(), S.DistributionMap(),
+                                 getLevel(lev+1).boxArray(), parent->refRatio(lev), 0, 1);
+        } else {
+            fmask.define(S.boxArray(), S.DistributionMap(), 1, 0);
+            fmask.setVal(0);
+        }
+#if (AMREX_SPACEDIM == 2)
+        const Real dA[2] = {dxl[1], dxl[0]};
+#else
+        const Real dA[3] = {dxl[1]*dxl[2], dxl[0]*dxl[2], dxl[0]*dxl[1]};
+#endif
+        for (MFIter mfi(S); mfi.isValid(); ++mfi) {
+            const Box& bx = mfi.validbox();
+            if (flags[mfi].getType(bx) != FabType::singlevalued) { continue; }
+            auto const& s = S.const_array(mfi);
+            auto const& fl = flags[mfi].const_array();
+            auto const& m = fmask.const_array(mfi);
+            AMREX_D_TERM(auto const& apx = ap[0]->const_array(mfi);,
+                         auto const& apy = ap[1]->const_array(mfi);,
+                         auto const& apz = ap[2]->const_array(mfi););
+            amrex::LoopOnCpu(bx, [&] (int i, int j, int k) {
+                if (!fl(i,j,k).isSingleValued() || m(i,j,k) != 0) { return; }
+                const Real p = gm1*s(i,j,k,UEINT) - pref;
+                F[0] += p*(apx(i,j,k) - apx(i+1,j,k))*dA[0];
+                F[1] += p*(apy(i,j,k) - apy(i,j+1,k))*dA[1];
+#if (AMREX_SPACEDIM == 3)
+                F[2] += p*(apz(i,j,k) - apz(i,j,k+1))*dA[2];
+#endif
+            });
+        }
+    }
+    ParallelDescriptor::ReduceRealSum(F.data(), 3);
+    if (ParallelDescriptor::IOProcessor()) {
+        std::ofstream ofs("forces.dat", std::ios::app);
+        ofs.precision(10);
+        ofs << time << " " << F[0] << " " << F[1] << " " << F[2] << "\n";
     }
 }
 
@@ -381,6 +447,8 @@ CNS::read_params ()
     pp.query("plm_iorder", plm_iorder);   // 1: first order, 2: second order slopes
     pp.query("plm_theta", plm_theta);     // 1: minmod, 2: monotonized central
     pp.query("eb_first_order", eb_first_order);
+    pp.query("force_int", force_int);
+    pp.query("force_pref", force_pref);
 
     Vector<int> lo_bc(AMREX_SPACEDIM), hi_bc(AMREX_SPACEDIM);
     pp.getarr("lo_bc", lo_bc, 0, AMREX_SPACEDIM);
@@ -545,9 +613,12 @@ CNS::estTimeStep ()
         auto const& s_arr = S.array(mfi);
         if (flag.getType(bx) != FabType::covered)
         {
+          auto const& vf = volfrac->const_array(mfi);
           reduce_op.eval(bx, reduce_data, [=]
              AMREX_GPU_DEVICE (int i, int j, int k) -> ReduceTuple
              {
+                 // covered cells hold no gas; their (unused) state must not limit dt
+                 if (vf(i,j,k) <= Real(0.0)) { return std::numeric_limits<Real>::max(); }
                  return cns_estdt(i,j,k,s_arr,dx,*lparm);
              });
         }
@@ -556,6 +627,21 @@ CNS::estTimeStep ()
     ReduceTuple host_tuple = reduce_data.value();
     estdt = amrex::min(estdt,amrex::get<0>(host_tuple));
 
+    if (verbose >= 3) {   // debug: report the cell that limits dt on this level
+        for (MFIter mfi(S,false); mfi.isValid(); ++mfi) {
+            auto const& s_arr = S.const_array(mfi);
+            auto const& vf = volfrac->const_array(mfi);
+            auto const& fl = flags[mfi].const_array();
+            amrex::LoopOnCpu(mfi.validbox(), [&] (int i, int j, int k) {
+                if (vf(i,j,k) > 0.0 && cns_estdt(i,j,k,s_arr,dx,*h_parm) <= estdt*(1.0+1.e-12)) {
+                    amrex::AllPrint() << "dt limit lev " << level << " cell " << IntVect(AMREX_D_DECL(i,j,k))
+                                      << " vf " << vf(i,j,k) << " covered " << fl(i,j,k).isCovered()
+                                      << " rho " << s_arr(i,j,k,URHO) << " eint " << s_arr(i,j,k,UEINT)
+                                      << " E " << s_arr(i,j,k,UEDEN) << "\n";
+                }
+            });
+        }
+    }
     estdt *= cfl;
     ParallelDescriptor::ReduceRealMin(estdt);
     return estdt;
